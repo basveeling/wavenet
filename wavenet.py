@@ -40,6 +40,7 @@ def config():
         'nesterov': True
     }
     keras_verbose = 1
+    debug = False
 
 
 @ex.config
@@ -156,8 +157,9 @@ def draw_sample(output_dist, sample_temperature, sample_argmax, _rnd):
 
 @ex.automain
 def main(data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragment_length, batch_size, fragment_stride,
-         nb_output_bins, keras_verbose, _log, seed, _config):
+         nb_output_bins, keras_verbose, _log, seed, _config, debug):
 
+    if not debug:
     _log.info('Config: ')
     _log.info(_config)
 
@@ -185,15 +187,17 @@ def main(data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragm
                   metrics=['categorical_accuracy', 'categorical_mean_squared_error'])
     # TODO: Consider gradient weighting making last outputs more important.
 
-    callbacks = [
+    callbacks = []
+    if not debug:
+        callbacks.extend([
         EarlyStopping(patience=early_stopping_patience, verbose=1),
         ReduceLROnPlateau(patience=early_stopping_patience / 2, cooldown=early_stopping_patience / 4, verbose=1),
         ModelCheckpoint(os.path.join(checkpoint_dir, 'checkpoint.{epoch:02d}-{val_loss:.2f}.hdf5'),
                         save_best_only=True),
         CSVLogger(os.path.join(run_dir, 'history.csv')),
+        ])
 
-    ]
-
+    if not debug:
     os.mkdir(checkpoint_dir)
     _log.info('Starting Training...')
     model.fit_generator(data_generators['train'],
