@@ -5,6 +5,7 @@ import wave
 import numpy as np
 from tqdm import tqdm
 import keras
+from keras import objectives
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, CSVLogger
 from keras.engine import Input
 from keras.engine import Model
@@ -32,6 +33,7 @@ def config():
     nb_stacks = 1
     fragment_stride = 2 ** 11 - 3
     use_skip_connections = True
+    loss_weights_mode = 'temporal_decay'
     optimizer = {
         'optimizer': 'sgd',
         'lr': 0.01,
@@ -157,18 +159,18 @@ def draw_sample(output_dist, sample_temperature, sample_argmax, _rnd):
 
 @ex.automain
 def main(data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragment_length, batch_size, fragment_stride,
-         nb_output_bins, keras_verbose, _log, seed, _config, debug):
+         nb_output_bins, loss_weights_mode, keras_verbose, _log, seed, _config, debug):
 
     if not debug:
-    _log.info('Config: ')
-    _log.info(_config)
+        _log.info('Config: ')
+        _log.info(_config)
 
-    run_dir = run_dir_name(seed)
-    if os.path.exists(run_dir):
-        raise EnvironmentError('Run with seed %d already exists' % seed)
-    os.mkdir(run_dir)
-    checkpoint_dir = os.path.join(run_dir, 'checkpoints')
-    json.dump(_config, open(os.path.join(run_dir, 'config.json'), 'w'))
+        run_dir = run_dir_name(seed)
+        if os.path.exists(run_dir):
+            raise EnvironmentError('Run with seed %d already exists' % seed)
+        os.mkdir(run_dir)
+        checkpoint_dir = os.path.join(run_dir, 'checkpoints')
+        json.dump(_config, open(os.path.join(run_dir, 'config.json'), 'w'))
 
     _log.info('Running with seed %d' % seed)
 
@@ -183,22 +185,38 @@ def main(data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragm
 
     optimizer = make_optimizer()
     _log.info('Compiling Model...')
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy',
-                  metrics=['categorical_accuracy', 'categorical_mean_squared_error'])
+
+    loss = objectives.categorical_crossentropy
+    if loss_weights_mode:
+        loss_weight = np.ones((nb_output_bins, fragment_length))
+        if loss_weights_mode == 'temporal_decay':
+            loss_weight = loss_weight * np.log(np.arange(1, fragment_length + 1)).reshape((1, fragment_length))
+        else:
+            raise ValueError("Invalid value for loss_weights_mode")
+        print loss_weight
+        loss = lambda t,p: loss_weight * objectives.categorical_crossentropy(t,p)
+    loss.__name__ = 'weighted_categorical_crossentropy'
+
+
+    model.compile(optimizer=optimizer,
+                  loss=loss,
+                  metrics=['categorical_accuracy', 'categorical_mean_squared_error'],
+                  )
+
     # TODO: Consider gradient weighting making last outputs more important.
 
     callbacks = []
     if not debug:
         callbacks.extend([
-        EarlyStopping(patience=early_stopping_patience, verbose=1),
-        ReduceLROnPlateau(patience=early_stopping_patience / 2, cooldown=early_stopping_patience / 4, verbose=1),
-        ModelCheckpoint(os.path.join(checkpoint_dir, 'checkpoint.{epoch:02d}-{val_loss:.2f}.hdf5'),
-                        save_best_only=True),
-        CSVLogger(os.path.join(run_dir, 'history.csv')),
+            EarlyStopping(patience=early_stopping_patience, verbose=1),
+            ReduceLROnPlateau(patience=early_stopping_patience / 2, cooldown=early_stopping_patience / 4, verbose=1),
+            ModelCheckpoint(os.path.join(checkpoint_dir, 'checkpoint.{epoch:02d}-{val_loss:.2f}.hdf5'),
+                            save_best_only=True),
+            CSVLogger(os.path.join(run_dir, 'history.csv')),
         ])
 
     if not debug:
-    os.mkdir(checkpoint_dir)
+        os.mkdir(checkpoint_dir)
     _log.info('Starting Training...')
     model.fit_generator(data_generators['train'],
                         nb_examples['train'],
