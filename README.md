@@ -11,7 +11,7 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
-An existing model checkpoint is included trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html
+A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
 ```$ python wavenet.py predict with /Users/bas/projects/wavenet/models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
