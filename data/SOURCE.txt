@@ -1,0 +1,2 @@
+Dataset of 2 chopin pieces played by 22 pianist in fixed recording setting.
+Download from: http://iwk.mdw.ac.at/goebl/mp3.html
