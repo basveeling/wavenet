@@ -5,8 +5,10 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 [Listen to a sample 🎶!](models/run_2016-09-14_11:32:09/samples/sample_epoch-00037_04s__sample-temp-0.001_seed-1215123.wav?raw=true)
 
-Generate your own samples:
-$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1
+Generate samples:
+
+```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
+
 ## Installation:
 `pip install -r requirements.txt` 
 
