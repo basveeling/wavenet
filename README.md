@@ -5,6 +5,8 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 [Listen to a sample 🎶!](models/run_2016-09-14_11:32:09/samples/sample_epoch-00037_04s__sample-temp-0.001_seed-1215123.wav?raw=true)
 
+Generate your own samples:
+$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1
 ## Installation:
 `pip install -r requirements.txt` 
 
@@ -15,7 +17,7 @@ Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ python wavenet.py predict with /Users/bas/projects/wavenet/models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
+```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
