@@ -9,10 +9,6 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 ## Installation:
 - `pip install -r requirements.txt`
 
-## Note on computational cost:
-The Wavenet model is quite expensive to train and sample from. We can however trade computation coast with accuracy and fidility by lowering the sampling rate, layer stacks and the amount of channels per layer.
-A Tesla K80 can generate ~15 samples per second using the `small` configuration, around ~4 minutes of sampling for a second of audio, at a sampling rate of 4000hz.
-
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
 An existing model checkpoint is included trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html
@@ -75,4 +71,9 @@ Available options:
     - Caveat: Make sure your wav files are supported by scipy.io.wavefile.read(): e.g. don't use 24bit wav and remove meta info.
 - Run with: `$ python wavenet.py 'data_dir=your_data_dir_name'`
 - Test preprocessing results with: `$ python wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
+
+
+## Note on computational cost:
+The Wavenet model is quite expensive to train and sample from. We can however trade computation coast with accuracy and fidility by lowering the sampling rate, layer stacks and the amount of channels per layer.
+A Tesla K80 can generate ~15 samples per second using the `small` configuration, around ~4 minutes of sampling for a second of audio, at a sampling rate of 4000hz.
 
