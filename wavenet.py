@@ -135,7 +135,7 @@ def build_model(fragment_length, nb_filters, nb_output_bins, dilation_depth, nb_
     def residual_block(x):
         original_x = x
         # TODO: initalization, regularization?
-        # Note: The AtrousConvolution1D with the 'causal' flag is implemented in basveeling/keras@wavenet.
+        # Note: The AtrousConvolution1D with the 'causal' flag is implemented in github.com/basveeling/keras#@wavenet.
         tanh_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
                                               bias=use_bias,
                                               name='dilated_conv_%d_tanh_s%d' % (2 ** i, s), activation='tanh')(x)
