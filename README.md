@@ -90,6 +90,8 @@ Available options:
 ## Note on computational cost:
 The Wavenet model is quite expensive to train and sample from. We can however trade computation cost with accuracy and fidility by lowering the sampling rate, amount of stacks and the amount of channels per layer.
 
-A Tesla K80 needs around ~4 minutes for generating a second of audio at a sampling rate of 4000hz with a small network. 
-A recent macbook pro needs around ~15 minutes.
+For a downsized model (4000hz vs 16000 sampling rate, 16 filters v/s 256, 2 stacks vs ??):
+- A Tesla K80 needs around ~4 minutes to generate one second of audio.
+- A recent macbook pro needs around ~15 minutes.
+Deepmind has reported that generating one second of audio with their model takes about 90 minutes.
 
