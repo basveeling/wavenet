@@ -74,5 +74,5 @@ Available options:
 
 ## Note on computational cost:
 The Wavenet model is quite expensive to train and sample from. We can however trade computation coast with accuracy and fidility by lowering the sampling rate, layer stacks and the amount of channels per layer.
-A Tesla K80 can generate ~15 samples per second using the `small` configuration, around ~4 minutes of sampling for a second of audio, at a sampling rate of 4000hz.
+A Tesla K80 can generate ~15 samples per second using the `small` configuration, around ~4 minutes of sampling for a second of audio, at a sampling rate of 4000hz. A recent macbook pro reaches about 5 samples per second.
 
