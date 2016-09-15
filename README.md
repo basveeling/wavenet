@@ -77,6 +77,10 @@ Available options:
 - Run with: `$ python wavenet.py 'data_dir=your_data_dir_name'`
 - Test preprocessing results with: `$ python wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
 
+## Todo:
+- [ ] Local conditioning
+- [ ] Global conditioning
+- [ ] Training on CSTR VCTK Corpus 
 
 ## Note on computational cost:
 The Wavenet model is quite expensive to train and sample from. We can however trade computation coast with accuracy and fidility by lowering the sampling rate, layer stacks and the amount of channels per layer.
