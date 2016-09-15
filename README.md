@@ -4,9 +4,14 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 
 Disclaimer: this is a re-implementation of the model described in the WaveNet paper by Google Deepmind. This repository is not associated with Google Deepmind.
 
+[Listen to a sample 🎶!](models/run_2016-09-14_11:32:09/samples/sample_epoch-00037_04s__sample-temp-0.001_seed-1215123.wav)
+
 ## Installation:
 - `pip install -r requirements.txt`
 
+## Note on computational cost:
+The Wavenet model is quite expensive to train and sample from. We can however trade computation coast with accuracy and fidility by lowering the sampling rate, layer stacks and the amount of channels per layer.
+A Tesla K80 can generate ~15 samples per second using the `small` configuration, around ~4 minutes of sampling for a second of audio, at a sampling rate of 4000hz.
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
