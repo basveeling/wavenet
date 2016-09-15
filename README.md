@@ -3,7 +3,7 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 
 Disclaimer: this is a re-implementation of the model described in the WaveNet paper by Google Deepmind. This repository is not associated with Google Deepmind.
 
-[Listen to a sample 🎶!](models/run_2016-09-14_11:32:09/samples/sample_epoch-00037_04s__sample-temp-0.001_seed-1215123.wav?raw=true)
+[Listen to a sample 🎶!](https://soundcloud.com/basveeling/wavenet-sample)
 
 Generate samples:
 
