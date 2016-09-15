@@ -80,7 +80,12 @@ Available options:
 ## Todo:
 - [ ] Local conditioning
 - [ ] Global conditioning
-- [ ] Training on CSTR VCTK Corpus 
+- [ ] Training on CSTR VCTK Corpus
+- [ ] CLI option to pick a wave file for the sample generation initial input.
+
+## Uncertainties from paper:
+- It's unclear if the model is trained to predict t+1 samples for every input sample, or only for the outputs for which which $t-receptive_field$ was in the input. Right now the code does the latter.
+- There is no mention of weight decay, batch normalization in the paper. Perhaps this is not needed given enough data?
 
 ## Note on computational cost:
 The Wavenet model is quite expensive to train and sample from. We can however trade computation cost with accuracy and fidility by lowering the sampling rate, amount of stacks and the amount of channels per layer.
