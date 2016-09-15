@@ -7,6 +7,7 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 ## Training:
 ```$ python wavenet.py```
+
 Or for a smaller network (less channels per layer).
 ```$ python wavenet.py with small```
 
@@ -29,11 +30,7 @@ Available options:
   nb_filters = 256
   nb_output_bins = 256
   nb_stacks = 1
-  predict_seconds = 1
-  predict_use_softmax_as_input = False
   run_dir = None
-  sample_argmax = False
-  sample_temperature = None
   seed = 3004083
   train_only_in_receptive_field = True
   use_bias = False
@@ -47,6 +44,7 @@ Available options:
     nesterov = True
     optimizer = 'sgd'
 ```
+
 ## Using your own training data:
 - Create a new data directory with a train and test folder in it. All wave files in these folders will be used as data.
     - Caveat: Make sure your wav files are supported by scipy.io.wavefile.read(): e.g. don't use 24bit wav and remove meta info.
@@ -54,12 +52,13 @@ Available options:
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
+
 Run:
 ```$ python wavenet.py predict with /Users/bas/projects/wavenet/models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
-The latest model checkpoint will be retrieved and used to sample.
-The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
-Sampling options:
+The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
+
+### Sampling options:
 - `predict_seconds`: float. Number of seconds to sample.
 - `sample_argmax`: `True` or `False`. Always take the argmax
 - `sample_temperature`: `None` or float. Controls the sampling temperature. 0.01 seems to be a good value.
