@@ -1,9 +1,29 @@
-# Wavenet implementation
+# Wavenet implementation in Keras
+This is in implementation of Wavenet model.
 Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https://arxiv.org/pdf/1609.03499.pdf.
+
 Disclaimer: this is a re-implementation of the model described in the WaveNet paper by Google Deepmind. This repository is not associated with Google Deepmind.
 
 ## Installation:
-- `pip install -R requirements.txt`
+- `pip install -r requirements.txt`
+
+
+## Sampling:
+Once the first model checkpoint is created, you can start sampling.
+An existing model checkpoint is included trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html
+
+Run:
+```$ python wavenet.py predict with /Users/bas/projects/wavenet/models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
+
+The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
+
+### Sampling options:
+- `predict_seconds`: float. Number of seconds to sample.
+- `sample_argmax`: `True` or `False`. Always take the argmax
+- `sample_temperature`: `None` or float. Controls the sampling temperature. 0.01 seems to be a good value.
+- `seed`: int: Controls the seed for the sampling procedure.
+e.g.:
+```$ python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
 
 ## Training:
 ```$ python wavenet.py```
@@ -49,19 +69,5 @@ Available options:
 - Create a new data directory with a train and test folder in it. All wave files in these folders will be used as data.
     - Caveat: Make sure your wav files are supported by scipy.io.wavefile.read(): e.g. don't use 24bit wav and remove meta info.
 - Run with: `$ python wavenet.py 'data_dir=your_data_dir_name'`
+- Test preprocessing results with: `$ python wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
 
-## Sampling:
-Once the first model checkpoint is created, you can start sampling.
-
-Run:
-```$ python wavenet.py predict with /Users/bas/projects/wavenet/models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
-
-The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
-
-### Sampling options:
-- `predict_seconds`: float. Number of seconds to sample.
-- `sample_argmax`: `True` or `False`. Always take the argmax
-- `sample_temperature`: `None` or float. Controls the sampling temperature. 0.01 seems to be a good value.
-- `seed`: int: Controls the seed for the sampling procedure.
-e.g.:
-```$ python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
