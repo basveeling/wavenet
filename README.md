@@ -6,7 +6,9 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 [Listen to a sample 🎶!](models/run_2016-09-14_11:32:09/samples/sample_epoch-00037_04s__sample-temp-0.001_seed-1215123.wav?raw=true)
 
 ## Installation:
-- `pip install -r requirements.txt`
+`pip install -r requirements.txt` 
+
+Note: this installs a modified version of Keras and the dev version of Theano.
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
