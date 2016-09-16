@@ -28,6 +28,7 @@ The latest model checkpoint will be retrieved and used to sample. The sample wil
 - `sample_argmax`: `True` or `False`. Always take the argmax
 - `sample_temperature`: `None` or float. Controls the sampling temperature. 0.01 seems to be a good value.
 - `seed`: int: Controls the seed for the sampling procedure.
+- `predict_initial_input`: string: Path to a wav file, for which the first `fragment_length` samples are used as initial input.
 e.g.:
 ```$ python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
 
