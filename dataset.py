@@ -65,17 +65,17 @@ def load_set(desired_sample_rate, set_dirname, use_ulaw):
         file_names = [fn for fn in os.listdir(set_dirname) if fn.endswith('.wav')]
         full_sequences = []
         for fn in tqdm(file_names):
-            sequence = process_wav(desired_sample_rate, set_dirname, fn, use_ulaw)
+            sequence = process_wav(desired_sample_rate, os.path.join(set_dirname, fn), use_ulaw)
             full_sequences.append(sequence)
         np.save(cache_fn, full_sequences)
 
     return full_sequences
 
 
-def process_wav(desired_sample_rate, dirname, fn, use_ulaw):
+def process_wav(desired_sample_rate, filename, use_ulaw):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        channels = scipy.io.wavfile.read(os.path.join(dirname, fn))
+        channels = scipy.io.wavfile.read(filename)
     file_sample_rate, audio = channels
     audio = ensure_mono(audio)
     audio = wav_to_float(audio)

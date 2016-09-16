@@ -77,9 +77,9 @@ def book():
 def small():
     desired_sample_rate=4410
     nb_filters = 16
-    dilation_depth = 10
-    nb_stacks = 2
-    fragment_length = 1024+(compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
+    dilation_depth = 8
+    nb_stacks = 1
+    fragment_length = 32+(compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
     fragment_stride = int(desired_sample_rate/10)
 
 
@@ -109,6 +109,7 @@ def predict_config():
     sample_argmax = False
     sample_temperature = None  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative chocies.
     predict_use_softmax_as_input = False  # Uses the softmax rather than the argmax as in input for the next step.
+    predict_initial_input = ''
 
 @ex.named_config
 def batch_run():
@@ -117,6 +118,7 @@ def batch_run():
 
 @ex.capture
 def skip_out_of_receptive_field(func):
+    # TODO: consider using keras masking for this?
     receptive_field, _ = compute_receptive_field()
 
     def wrapper(y_true, y_pred):
@@ -203,7 +205,7 @@ def make_optimizer(optimizer, lr, momentum, decay, nesterov, epsilon):
 
 @ex.command
 def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, predict_seconds, data_dir, batch_size,
-            fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw,
+            fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw, predict_initial_input,
             **kwargs):
     checkpoint_dir = os.path.join(run_dir, 'checkpoints')
     last_checkpoint = sorted(os.listdir(checkpoint_dir))[-1]
@@ -224,9 +226,15 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
     model = build_model()
     model.load_weights(os.path.join(checkpoint_dir, last_checkpoint))
 
-    data_generators, _ = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
-                                            fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
-    outputs = list(data_generators['test'].next()[0][10])
+    if predict_initial_input is not '':
+        _log.info('Taking first %d (%.2fs) from \'%s\' as initial input.' % (fragment_length, fragment_length / desired_sample_rate, predict_initial_input))
+        wav = dataset.process_wav(desired_sample_rate, predict_initial_input, use_ulaw)
+        outputs = list(dataset.one_hot(wav[0:fragment_length]))
+    else:
+        _log.info('Taking sample from test dataset as initial input.' % (fragment_length, predict_initial_input))
+        data_generators, _ = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
+                                                fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
+        outputs = list(data_generators['test'].next()[0][-1])
 
     # write_samples(sample_stream, outputs)
     for i in tqdm(xrange(int(desired_sample_rate * predict_seconds))):
