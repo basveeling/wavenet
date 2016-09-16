@@ -7,7 +7,7 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 Generate samples:
 
-```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
+```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1 sample_temperature=0.001```
 
 ## Installation:
 `pip install -r requirements.txt` 
@@ -19,7 +19,7 @@ Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1```
+```$ python wavenet.py predict with models/run_2016-09-14_11:32:09/config.json predict_seconds=1 sample_temperature=0.001```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
