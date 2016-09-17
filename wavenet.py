@@ -333,7 +333,7 @@ def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_ra
          fragment_stride, nb_output_bins, keras_verbose, _log, seed, _config, debug, learn_all_outputs,
          train_only_in_receptive_field, _run, use_ulaw):
     if run_dir is None:
-        run_dir = os.path.join('models', datetime.datetime.now().strftime('run_%Y-%m-%d_%H:%M:%S'))
+        run_dir = os.path.join('models', datetime.datetime.now().strftime('run_%Y%m%d_%H%M%S'))
         _config['run_dir'] = run_dir
 
     print_config(_run)
