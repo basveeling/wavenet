@@ -226,12 +226,12 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
     model = build_model()
     model.load_weights(os.path.join(checkpoint_dir, last_checkpoint))
 
-    if predict_initial_input is not '':
+    if predict_initial_input != '':
         _log.info('Taking first %d (%.2fs) from \'%s\' as initial input.' % (fragment_length, fragment_length / desired_sample_rate, predict_initial_input))
         wav = dataset.process_wav(desired_sample_rate, predict_initial_input, use_ulaw)
         outputs = list(dataset.one_hot(wav[0:fragment_length]))
     else:
-        _log.info('Taking sample from test dataset as initial input.' % (fragment_length, predict_initial_input))
+        _log.info('Taking sample from test dataset as initial input.')
         data_generators, _ = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
                                                 fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
         outputs = list(data_generators['test'].next()[0][-1])
