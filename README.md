@@ -7,19 +7,21 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 Generate samples:
 
-```$ python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 ## Installation:
 `pip install -r requirements.txt` 
 
-Note: this installs a modified version of Keras and the dev version of Theano.
+Note: this installs a modified version of Keras and the dev version of Theano. 
+
+Using the tensorflow backend is not recommened at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
@@ -31,17 +33,17 @@ The latest model checkpoint will be retrieved and used to sample. The sample wil
 - `predict_initial_input`: string: Path to a wav file, for which the first `fragment_length` samples are used as initial input.
 
 e.g.:
-```$ python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
 
 ## Training:
-```$ python wavenet.py```
+```$ KERAS_BACKEND=theano python wavenet.py```
 
 Or for a smaller network (less channels per layer).
-```$ python wavenet.py with small```
+```$ KERAS_BACKEND=theano python wavenet.py with small```
 
 ### Options:
 Train with different configurations:
-```$ python wavenet.py with 'option=value' 'option2=value'```
+```$ KERAS_BACKEND=theano python wavenet.py with 'option=value' 'option2=value'```
 Available options:
 ```
  batch_size = 64
