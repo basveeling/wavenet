@@ -14,7 +14,7 @@ Generate samples:
 
 Note: this installs a modified version of Keras and the dev version of Theano. 
 
-Using the tensorflow backend is not recommened at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
+Using the tensorflow backend is not recommended at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
