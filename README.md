@@ -60,10 +60,10 @@ Or for a smaller network (less channels per layer).
 In order to use the VCTK dataset, first download the dataset by running `vctk/download_vctk.sh`.
 
 Training is done with:
-```$ KERAS_BACKEND=theano python wavenet.py with vctk```
+```$ KERAS_BACKEND=theano python wavenet.py with vctkdata```
 
 For smaller network:
-```$ KERAS_BACKEND=theano python wavenet.py with vctk small```
+```$ KERAS_BACKEND=theano python wavenet.py with vctkdata small```
 
 ### Options:
 Train with different configurations:

@@ -81,7 +81,7 @@ def small(desired_sample_rate):
 
 
 @ex.named_config
-def vctk():
+def vctkdata():
     assert os.path.isdir(os.path.join('vctk', 'VCTK-Corpus')), "Please download vctk by running vctk/download_vctk.sh."
     desired_sample_rate = 4000
     data_dir = 'vctk/VCTK-Corpus/wav48'
