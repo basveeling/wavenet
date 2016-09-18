@@ -120,7 +120,7 @@ Available options:
 - [x] Training on CSTR VCTK Corpus
 - [x] CLI option to pick a wave file for the sample generation initial input. Done: see `predict_initial_input`.
 - [x] Fully randomized training batches
-- [x] Soft targets: by convolving a gaussian kernel over the softmax, the network trains faster.
+- [x] Soft targets: by convolving a gaussian kernel over the one-hot targets, the network trains faster.
 - [ ] Decaying soft targets: the stdev of the gaussian kernel should slowly decay.
 
 
