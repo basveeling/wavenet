@@ -7,21 +7,37 @@ Disclaimer: this is a re-implementation of the model described in the WaveNet pa
 
 Generate samples:
 
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 ## Installation:
-`pip install -r requirements.txt` 
+Activate a new virtualenv (recommended):
+```bash
+pip install virtualenv
+mkdir ~/virtualenvs && cd ~/virtualenvs
+virtualenv wavenet
+source wavenet/bin/activate
+```
+Clone and install requirements:
+```bash
+git clone https://github.com/basveeling/wavenet.git
+cd wavenet
+pip install -r requirements.txt
+```
 
-Note: this installs a modified version of Keras and the dev version of Theano. 
+Note: this installs a modified version of Keras and the git version of Theano. 
 
 Using the tensorflow backend is not recommended at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
+
+## Dependencies:
+[Sacred](https://github.com/IDSIA/sacred) is used for managing training and sampling. Take a look at the [documentation](http://sacred.readthedocs.io/en/latest/) for more information.
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```bash 
+KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
