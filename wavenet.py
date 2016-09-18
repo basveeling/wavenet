@@ -1,28 +1,23 @@
+import datetime
 import json
 import os
+import re
 import wave
 
-import audioop
-import datetime
-
 import numpy as np
-import re
 import scipy.io.wavfile
+from sacred import Experiment
 from sacred.commands import print_config
 from tqdm import tqdm
-import keras
-from keras import objectives
+
+import dataset
+from keras import layers
 from keras import metrics
+from keras import objectives
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, CSVLogger
 from keras.engine import Input
 from keras.engine import Model
-import keras.backend as K
 from keras.optimizers import Adam, SGD
-
-import dataset
-from sacred import Experiment
-from keras import layers
-import q
 
 ex = Experiment('wavenet')
 
@@ -30,19 +25,21 @@ ex = Experiment('wavenet')
 @ex.config
 def config():
     data_dir = 'data'
+    data_dir_structure = 'flat'  # Or 'vctk' for a speakerdir structure
+    test_factor = 0.1  # For 'vctk' structure, take test_factor amount of sequences for test set.
     nb_epoch = 1000
     run_dir = None
     early_stopping_patience = 20
-    fragment_length = 2 ** 10
     desired_sample_rate = 4410
-    batch_size = 64
+    batch_size = 16
     nb_output_bins = 256
     nb_filters = 256
     dilation_depth = 9  #
     nb_stacks = 1
     use_bias = False
     use_ulaw = True
-    fragment_stride = 2 ** 11 - 3
+    fragment_length = 128 + compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0]
+    fragment_stride = 128
     use_skip_connections = True
     optimizer = {
         'optimizer': 'sgd',
@@ -53,6 +50,7 @@ def config():
         'epsilon': None
     }
     learn_all_outputs = True
+    randomize_batch_order = True
 
     # The temporal-first outputs are computed from zero-padding. Setting below to True ignores these inputs:
     train_only_in_receptive_field = True
@@ -74,14 +72,21 @@ def book():
 
 
 @ex.named_config
-def small():
-    desired_sample_rate=4410
+def small(desired_sample_rate):
     nb_filters = 16
     dilation_depth = 8
     nb_stacks = 1
-    fragment_length = 32+(compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
-    fragment_stride = int(desired_sample_rate/10)
+    fragment_length = 128 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
+    fragment_stride = int(desired_sample_rate / 10)
 
+
+@ex.named_config
+def vctk():
+    assert os.path.isdir(os.path.join('vctk', 'VCTK-Corpus')), "Please download vctk by running vctk/download_vctk.sh."
+    desired_sample_rate = 4000
+    data_dir = 'vctk/VCTK-Corpus/wav48'
+    data_dir_structure = 'vctk'
+    test_factor = 0.01
 
 
 @ex.named_config
@@ -103,6 +108,7 @@ def adam2():
         'epsilon': 1e-10
     }
 
+
 @ex.config
 def predict_config():
     predict_seconds = 1
@@ -110,6 +116,7 @@ def predict_config():
     sample_temperature = None  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative chocies.
     predict_use_softmax_as_input = False  # Uses the softmax rather than the argmax as in input for the next step.
     predict_initial_input = ''
+
 
 @ex.named_config
 def batch_run():
@@ -205,7 +212,8 @@ def make_optimizer(optimizer, lr, momentum, decay, nesterov, epsilon):
 
 @ex.command
 def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, predict_seconds, data_dir, batch_size,
-            fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw, predict_initial_input,
+            fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw,
+            predict_initial_input,
             **kwargs):
     checkpoint_dir = os.path.join(run_dir, 'checkpoints')
     last_checkpoint = sorted(os.listdir(checkpoint_dir))[-1]
@@ -227,13 +235,13 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
     model.load_weights(os.path.join(checkpoint_dir, last_checkpoint))
 
     if predict_initial_input != '':
-        _log.info('Taking first %d (%.2fs) from \'%s\' as initial input.' % (fragment_length, fragment_length / desired_sample_rate, predict_initial_input))
+        _log.info('Taking first %d (%.2fs) from \'%s\' as initial input.' % (
+            fragment_length, fragment_length / desired_sample_rate, predict_initial_input))
         wav = dataset.process_wav(desired_sample_rate, predict_initial_input, use_ulaw)
         outputs = list(dataset.one_hot(wav[0:fragment_length]))
     else:
         _log.info('Taking sample from test dataset as initial input.')
-        data_generators, _ = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
-                                                fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
+        data_generators, _ = get_generators()
         outputs = list(data_generators['test'].next()[0][-1])
 
     # write_samples(sample_stream, outputs)
@@ -280,11 +288,24 @@ def write_samples(sample_file, out_val, use_ulaw):
     sample_file.writeframes(s)
 
 
+@ex.capture
+def get_generators(batch_size, data_dir, desired_sample_rate, fragment_length, fragment_stride, learn_all_outputs,
+                   nb_output_bins, use_ulaw, test_factor, data_dir_structure, randomize_batch_order, _rnd):
+    if data_dir_structure == 'flat':
+        return dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
+                                  fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw, randomize_batch_order,
+                                  _rnd)
+
+    elif data_dir_structure == 'vctk':
+        return dataset.generators_vctk(data_dir, desired_sample_rate, fragment_length, batch_size,
+                                       fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw, test_factor,
+                                       randomize_batch_order, _rnd)
+    else:
+        raise ValueError('data_dir_structure must be "flat" or "vctk", is %s' % data_dir_structure)
+
+
 @ex.command
-def test_preprocess(desired_sample_rate, fragment_length, _log, seed, _seed, _config, predict_seconds, data_dir,
-                    batch_size,
-                    fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw,
-                    **kwargs):
+def test_preprocess(desired_sample_rate, batch_size, use_ulaw):
     sample_dir = os.path.join('preprocess_test')
     if not os.path.exists(sample_dir):
         os.mkdir(sample_dir)
@@ -293,9 +314,8 @@ def test_preprocess(desired_sample_rate, fragment_length, _log, seed, _seed, _co
     sample_filename = os.path.join(sample_dir, 'test1%s.wav' % ulaw_str)
     sample_stream = make_sample_stream(desired_sample_rate, sample_filename)
 
-    data_generators, _ = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
-                                            fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
-    outputs = data_generators['test'].next()[0][batch_size - 1].astype('uint8')
+    data_generators, _ = get_generators()
+    outputs = data_generators['test'].next()[0][1].astype('uint8')
 
     write_samples(sample_stream, outputs)
     scipy.io.wavfile.write(os.path.join(sample_dir, 'test2%s.wav' % ulaw_str), desired_sample_rate,
@@ -348,8 +368,7 @@ def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_ra
         json.dump(_config, open(os.path.join(run_dir, 'config.json'), 'w'))
 
     _log.info('Loading data...')
-    data_generators, nb_examples = dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
-                                                      fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw)
+    data_generators, nb_examples = get_generators()
 
     _log.info('Building model...')
     model = build_model(fragment_length)
@@ -376,9 +395,9 @@ def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_ra
     ]
     if not debug:
         callbacks.extend([
-        ModelCheckpoint(os.path.join(checkpoint_dir, 'checkpoint.{epoch:05d}-{val_loss:.3f}.hdf5'),
-                        save_best_only=True),
-        CSVLogger(os.path.join(run_dir, 'history.csv')),
+            ModelCheckpoint(os.path.join(checkpoint_dir, 'checkpoint.{epoch:05d}-{val_loss:.3f}.hdf5'),
+                            save_best_only=True),
+            CSVLogger(os.path.join(run_dir, 'history.csv')),
         ])
 
     if not debug:

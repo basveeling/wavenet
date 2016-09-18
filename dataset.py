@@ -2,17 +2,16 @@
 """
 from __future__ import division
 
-import fractions
+import math
 import os
+import warnings
 
-import sacred
-from tqdm import tqdm
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 from picklable_itertools import cycle
 from picklable_itertools.extras import partition_all
-import warnings
+from tqdm import tqdm
 
 
 # TODO: make SACRED ingredient.
@@ -28,9 +27,11 @@ def fragment_indices(full_sequences, fragment_length, batch_size, fragment_strid
             yield (seq_i, i, i + fragment_length), (seq_i, i + 1, i + 1 + fragment_length)
 
 
-def batch_generator(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins, learn_all_outputs):
+def batch_generator(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins, randomize_batch_order, _rnd):
     indices = list(fragment_indices(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins))
-    # TODO: shuffle
+    if randomize_batch_order:
+        _rnd.shuffle(indices)
+
     batches = cycle(partition_all(batch_size, indices))
     for batch in batches:
         if len(batch) < batch_size:
@@ -41,14 +42,37 @@ def batch_generator(full_sequences, fragment_length, batch_size, fragment_stride
 
 
 def generators(dirname, desired_sample_rate, fragment_length, batch_size, fragment_stride, nb_output_bins,
-               learn_all_outputs, use_ulaw):
+               learn_all_outputs, use_ulaw, randomize_batch_order, _rnd):
     fragment_generators = {}
     nb_examples = {}
     for set_name in ['train', 'test']:
         set_dirname = os.path.join(dirname, set_name)
         full_sequences = load_set(desired_sample_rate, set_dirname, use_ulaw)
         fragment_generators[set_name] = batch_generator(full_sequences, fragment_length, batch_size, fragment_stride,
-                                                        nb_output_bins, learn_all_outputs)
+                                                        nb_output_bins, randomize_batch_order, _rnd)
+        nb_examples[set_name] = int(sum(
+            [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
+             full_sequences]) / batch_size) * batch_size
+
+    return fragment_generators, nb_examples
+
+
+def generators_vctk(dirname, desired_sample_rate, fragment_length, batch_size, fragment_stride, nb_output_bins,
+                    learn_all_outputs, use_ulaw, test_factor, randomize_batch_order, _rnd):
+    fragment_generators = {}
+    nb_examples = {}
+    speaker_dirs = os.listdir(dirname)
+    train_full_sequences = []
+    test_full_sequences = []
+    for speaker_dir in speaker_dirs:
+        full_sequences = load_set(desired_sample_rate, os.path.join(dirname, speaker_dir), use_ulaw)
+        nb_examples_train = int(math.ceil(len(full_sequences) * (1 - test_factor)))
+        train_full_sequences.extend(full_sequences[0:nb_examples_train])
+        test_full_sequences.extend(full_sequences[nb_examples_train:])
+
+    for set_name, set_sequences in zip(['train', 'test'], [train_full_sequences, test_full_sequences]):
+        fragment_generators[set_name] = batch_generator(set_sequences, fragment_length, batch_size, fragment_stride,
+                                                        nb_output_bins, randomize_batch_order, _rnd)
         nb_examples[set_name] = int(sum(
             [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
              full_sequences]) / batch_size) * batch_size
@@ -128,8 +152,6 @@ def ulaw2lin(x, u=255.):
 def ensure_sample_rate(desired_sample_rate, file_sample_rate, mono_audio):
     if file_sample_rate != desired_sample_rate:
         mono_audio = scipy.signal.resample_poly(mono_audio, desired_sample_rate, file_sample_rate)
-        # mono_audio = scipy.signal.resample(mono_audio, int((len(mono_audio)*desired_sample_rate) / file_sample_rate))
-        # TODO: listen to output
     return mono_audio
 
 
@@ -141,20 +163,3 @@ def ensure_mono(raw_audio):
         raw_audio = raw_audio[:, 0]
     return raw_audio
 
-
-if __name__ == '__main__':
-    fragment_length = 2 ** 4
-    desired_sample_rate = 44100
-    batch_size = 2
-    nb_output_bins = 256
-    nb_filters = 256
-    nb_dilations = 2
-    nb_stacks = 1
-    fragment_stride = 44100
-    skip_connections = False
-    g, n = generators(dirname='data', desired_sample_rate=desired_sample_rate, fragment_length=fragment_length,
-                      batch_size=batch_size, fragment_stride=fragment_stride, nb_output_bins=nb_output_bins,
-                      use_ulaw=True)
-    print g['train'].next()[0].shape
-    print g['train'].next()[1].shape
-    # print len(list(g['train'])), n['train']

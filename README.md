@@ -56,6 +56,15 @@ e.g.:
 Or for a smaller network (less channels per layer).
 ```$ KERAS_BACKEND=theano python wavenet.py with small```
 
+### VCTK:
+In order to use the VCTK dataset, first download the dataset by running `vctk/download_vctk.sh`.
+
+Training is done with:
+```$ KERAS_BACKEND=theano python wavenet.py with vctk```
+
+For smaller network:
+```$ KERAS_BACKEND=theano python wavenet.py with vctk small```
+
 ### Options:
 Train with different configurations:
 ```$ KERAS_BACKEND=theano python wavenet.py with 'option=value' 'option2=value'```
