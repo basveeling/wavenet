@@ -19,6 +19,7 @@ source wavenet/bin/activate
 ```
 Clone and install requirements:
 ```bash
+cd ~
 git clone https://github.com/basveeling/wavenet.git
 cd wavenet
 pip install -r requirements.txt
