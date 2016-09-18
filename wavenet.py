@@ -6,9 +6,13 @@ import wave
 
 import numpy as np
 import scipy.io.wavfile
+import scipy.signal
+import theano
 from sacred import Experiment
+
 from sacred.commands import print_config
 from tqdm import tqdm
+import keras.backend as K
 
 import dataset
 from keras import layers
@@ -52,6 +56,7 @@ def config():
     learn_all_outputs = True
     random_train_batches = False
     randomize_batch_order = True  # Only effective if not using random train batches
+    train_with_soft_target_stdev = None  # float to make targets a gaussian with stdev.
 
     # The temporal-first outputs are computed from zero-padding. Setting below to True ignores these inputs:
     train_only_in_receptive_field = True
@@ -79,6 +84,12 @@ def small(desired_sample_rate):
     nb_stacks = 1
     fragment_length = 128 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
     fragment_stride = int(desired_sample_rate / 10)
+
+
+@ex.named_config
+def soft_targets():
+    train_with_soft_target_stdev = 0.5
+    # TODO: smooth decay of stdev per epoch.
 
 
 @ex.named_config
@@ -140,6 +151,51 @@ def skip_out_of_receptive_field(func):
     def wrapper(y_true, y_pred):
         y_true = y_true[:, receptive_field - 1:, :]
         y_pred = y_pred[:, receptive_field - 1:, :]
+        return func(y_true, y_pred)
+
+    wrapper.__name__ = func.__name__
+
+    return wrapper
+
+
+def print_t(tensor, label):
+    tensor.name = label
+    tensor = theano.printing.Print(tensor.name, attrs=('__str__', 'shape'))(tensor)
+    return tensor
+
+
+@ex.capture
+def make_soft(y_true, fragment_length, nb_output_bins, train_with_soft_target_stdev, with_prints=False):
+    receptive_field, _ = compute_receptive_field()
+    n_outputs = fragment_length - receptive_field + 1
+
+    # Make a gaussian kernel.
+    kernel_v = scipy.signal.gaussian(9, std=train_with_soft_target_stdev)
+    print kernel_v
+    kernel_v = np.reshape(kernel_v, [1, 1, -1, 1])
+    kernel = K.variable(kernel_v)
+
+    if with_prints:
+        y_true = print_t(y_true, 'y_true initial')
+
+    # y_true: [batch, timesteps, input_dim]
+    y_true = K.reshape(y_true, (-1, 1, nb_output_bins, 1))  # Same filter for all output; combine with batch.
+    # y_true: [batch*timesteps, n_channels=1, input_dim, dummy]
+    y_true = K.conv2d(y_true, kernel, border_mode='same')
+    y_true = K.reshape(y_true, (-1, n_outputs, nb_output_bins))  # Same filter for all output; combine with batch.
+    # y_true: [batch, timesteps, input_dim]
+    y_true /= K.sum(y_true, axis=-1, keepdims=True)
+
+    if with_prints:
+        y_true = print_t(y_true, 'y_true after')
+    return y_true
+
+def make_targets_soft(func):
+    """Turns one-hot into gaussian distributed."""
+
+    def wrapper(y_true, y_pred):
+        y_true = make_soft(y_true)
+        y_pred = y_pred
         return func(y_true, y_pred)
 
     wrapper.__name__ = func.__name__
@@ -319,6 +375,20 @@ def get_generators(batch_size, data_dir, desired_sample_rate, fragment_length, f
 
 
 @ex.command
+def test_make_soft(_log, train_with_soft_target_stdev, _config):
+    if train_with_soft_target_stdev is None:
+        _config['train_with_soft_target_stdev'] = 1
+    y_true = K.reshape(K.eye(512)[:129,:256], (2, 129, 256))
+    y_soft = make_soft(y_true)
+    f = K.function([], y_soft)
+    _log.info('Output of soft:')
+    f1 = f([])
+
+    _log.info(f1[0,0])
+    _log.info(f1[-1,-1])
+
+
+@ex.command
 def test_preprocess(desired_sample_rate, batch_size, use_ulaw):
     sample_dir = os.path.join('preprocess_test')
     if not os.path.exists(sample_dir):
@@ -366,7 +436,7 @@ def draw_sample(output_dist, sample_temperature, sample_argmax, _rnd):
 @ex.automain
 def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragment_length, batch_size,
          fragment_stride, nb_output_bins, keras_verbose, _log, seed, _config, debug, learn_all_outputs,
-         train_only_in_receptive_field, _run, use_ulaw):
+         train_only_in_receptive_field, _run, use_ulaw, train_with_soft_target_stdev):
     if run_dir is None:
         run_dir = os.path.join('models', datetime.datetime.now().strftime('run_%Y%m%d_%H%M%S'))
         _config['run_dir'] = run_dir
@@ -397,6 +467,8 @@ def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_ra
         metrics.categorical_accuracy,
         metrics.categorical_mean_squared_error
     ]
+    if train_with_soft_target_stdev:
+        loss = make_targets_soft(loss)
     if train_only_in_receptive_field:
         loss = skip_out_of_receptive_field(loss)
         all_metrics = [skip_out_of_receptive_field(m) for m in all_metrics]

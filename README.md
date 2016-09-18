@@ -120,6 +120,9 @@ Available options:
 - [x] Training on CSTR VCTK Corpus
 - [x] CLI option to pick a wave file for the sample generation initial input. Done: see `predict_initial_input`.
 - [x] Fully randomized training batches
+- [x] Soft targets: by convolving a gaussian kernel over the softmax, the network trains faster.
+- [ ] Decaying soft targets: the stdev of the gaussian kernel should slowly decay.
+
 
 ## Uncertainties from paper:
 - It's unclear if the model is trained to predict t+1 samples for every input sample, or only for the outputs for which which $t-receptive_field$ was in the input. Right now the code does the latter.
