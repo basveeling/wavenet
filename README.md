@@ -1,13 +1,12 @@
 # WaveNet implementation in Keras
 Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https://arxiv.org/pdf/1609.03499.pdf.
 
-Disclaimer: this is a re-implementation of the model described in the WaveNet paper by Google Deepmind. This repository is not associated with Google Deepmind.
 
 [Listen to a sample 🎶!](https://soundcloud.com/basveeling/wavenet-sample)
 
-Generate samples:
+Generate your own samples:
 
-```KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 ## Installation:
 Activate a new virtualenv (recommended):
@@ -37,8 +36,7 @@ Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```bash 
-KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
@@ -102,7 +100,7 @@ Available options:
 - [ ] Local conditioning
 - [ ] Global conditioning
 - [ ] Training on CSTR VCTK Corpus
-- [ ] CLI option to pick a wave file for the sample generation initial input.
+- [x] CLI option to pick a wave file for the sample generation initial input. Done: see `predict_initial_input`.
 
 ## Uncertainties from paper:
 - It's unclear if the model is trained to predict t+1 samples for every input sample, or only for the outputs for which which $t-receptive_field$ was in the input. Right now the code does the latter.
@@ -116,3 +114,5 @@ For a downsized model (4000hz vs 16000 sampling rate, 16 filters v/s 256, 2 stac
 - A recent macbook pro needs around ~15 minutes.
 Deepmind has reported that generating one second of audio with their model takes about 90 minutes.
 
+## Disclaimer
+This is a re-implementation of the model described in the WaveNet paper by Google Deepmind. This repository is not associated with Google Deepmind.
