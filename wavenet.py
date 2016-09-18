@@ -50,7 +50,8 @@ def config():
         'epsilon': None
     }
     learn_all_outputs = True
-    randomize_batch_order = True
+    random_train_batches = False
+    randomize_batch_order = True  # Only effective if not using random train batches
 
     # The temporal-first outputs are computed from zero-padding. Setting below to True ignores these inputs:
     train_only_in_receptive_field = True
@@ -88,6 +89,15 @@ def vctkdata():
     data_dir_structure = 'vctk'
     test_factor = 0.01
 
+@ex.named_config
+def vctkmod(desired_sample_rate):
+    nb_filters = 32
+    dilation_depth = 7
+    nb_stacks = 4
+    fragment_length = 1 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
+    fragment_stride = int(desired_sample_rate)
+    random_train_batches = True
+
 
 @ex.named_config
 def adam():
@@ -113,7 +123,7 @@ def adam2():
 def predict_config():
     predict_seconds = 1
     sample_argmax = False
-    sample_temperature = None  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative chocies.
+    sample_temperature = 0.001  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative chocies.
     predict_use_softmax_as_input = False  # Uses the softmax rather than the argmax as in input for the next step.
     predict_initial_input = ''
 
@@ -123,7 +133,6 @@ def batch_run():
     keras_verbose = 2
 
 
-@ex.capture
 def skip_out_of_receptive_field(func):
     # TODO: consider using keras masking for this?
     receptive_field, _ = compute_receptive_field()
@@ -215,6 +224,10 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
             fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw,
             predict_initial_input,
             **kwargs):
+
+    fragment_length = compute_receptive_field()[0]
+    _config['fragment_length'] = fragment_length
+
     checkpoint_dir = os.path.join(run_dir, 'checkpoints')
     last_checkpoint = sorted(os.listdir(checkpoint_dir))[-1]
     epoch = int(re.match(r'checkpoint\.(\d+?)-.*', last_checkpoint).group(1))
@@ -286,20 +299,21 @@ def write_samples(sample_file, out_val, use_ulaw):
     s = bytearray(list(s))
     # print s[0]
     sample_file.writeframes(s)
+    sample_file._file.flush()
 
 
 @ex.capture
 def get_generators(batch_size, data_dir, desired_sample_rate, fragment_length, fragment_stride, learn_all_outputs,
-                   nb_output_bins, use_ulaw, test_factor, data_dir_structure, randomize_batch_order, _rnd):
+                   nb_output_bins, use_ulaw, test_factor, data_dir_structure, randomize_batch_order, _rnd, random_train_batches):
     if data_dir_structure == 'flat':
         return dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
                                   fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw, randomize_batch_order,
-                                  _rnd)
+                                  _rnd, random_train_batches)
 
     elif data_dir_structure == 'vctk':
         return dataset.generators_vctk(data_dir, desired_sample_rate, fragment_length, batch_size,
                                        fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw, test_factor,
-                                       randomize_batch_order, _rnd)
+                                       randomize_batch_order, _rnd, random_train_batches)
     else:
         raise ValueError('data_dir_structure must be "flat" or "vctk", is %s' % data_dir_structure)
 
@@ -330,10 +344,10 @@ def make_sample_stream(desired_sample_rate, sample_filename):
     return sample_file
 
 
-def softmax(x, temp):
+def softmax(x, temp, mod=np):
     x = x / temp
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
+    e_x = mod.exp(x - mod.max(x, axis=-1))
+    return e_x / mod.sum(e_x, axis=-1)
 
 
 @ex.capture
@@ -346,6 +360,7 @@ def draw_sample(output_dist, sample_temperature, sample_argmax, _rnd):
         output_dist = output_dist / np.sum(output_dist + 1e-7)
         output_dist = _rnd.multinomial(1, output_dist)
     return output_dist
+
 
 
 @ex.automain

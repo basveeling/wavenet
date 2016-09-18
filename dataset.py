@@ -24,7 +24,16 @@ def fragment_indices(full_sequences, fragment_length, batch_size, fragment_strid
         # range_values = np.linspace(np.iinfo(sequence.dtype).min, np.iinfo(sequence.dtype).max, nb_output_bins)
         # digitized = np.digitize(sequence, range_values).astype('uint8')
         for i in xrange(0, sequence.shape[0] - fragment_length, fragment_stride):
-            yield (seq_i, i, i + fragment_length), (seq_i, i + 1, i + 1 + fragment_length)
+            yield seq_i, i
+
+
+def select_generator(set_name, random_train_batches, full_sequences, fragment_length, batch_size, fragment_stride,
+                     nb_output_bins, randomize_batch_order, _rnd):
+    if random_train_batches and set_name == 'train':
+        bg = random_batch_generator
+    else:
+        bg = batch_generator
+    return bg(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins, randomize_batch_order, _rnd)
 
 
 def batch_generator(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins, randomize_batch_order, _rnd):
@@ -37,19 +46,37 @@ def batch_generator(full_sequences, fragment_length, batch_size, fragment_stride
         if len(batch) < batch_size:
             continue
         yield np.array(
-            [one_hot(full_sequences[e[0][0]][e[0][1]:e[0][2]]) for e in batch], dtype = 'uint8'), np.array(
-            [one_hot(full_sequences[e[1][0]][e[1][1]:e[1][2]]) for e in batch], dtype='uint8')
+            [one_hot(full_sequences[e[0]][e[1]:e[1] + fragment_length]) for e in batch], dtype='uint8'), np.array(
+            [one_hot(full_sequences[e[0]][e[1] + 1:e[1] + fragment_length + 1]) for e in batch], dtype='uint8')
+
+
+def random_batch_generator(full_sequences, fragment_length, batch_size, fragment_stride, nb_output_bins,
+                           randomize_batch_order, _rnd):
+    lengths = [x.shape[0] for x in full_sequences]
+    nb_sequences = len(full_sequences)
+    while True:
+        sequence_indices = _rnd.randint(0, nb_sequences, batch_size)
+        batch_inputs = []
+        batch_outputs = []
+        for i, seq_i in enumerate(sequence_indices):
+            l = lengths[seq_i]
+            offset = np.squeeze(_rnd.randint(0, l - fragment_length, 1))
+            batch_inputs.append(full_sequences[seq_i][offset:offset + fragment_length])
+            batch_outputs.append(full_sequences[seq_i][offset + 1:offset + fragment_length + 1])
+        yield one_hot(np.array(batch_inputs, dtype='uint8')), one_hot(np.array(batch_outputs, dtype='uint8'))
 
 
 def generators(dirname, desired_sample_rate, fragment_length, batch_size, fragment_stride, nb_output_bins,
-               learn_all_outputs, use_ulaw, randomize_batch_order, _rnd):
+               learn_all_outputs, use_ulaw, randomize_batch_order, _rnd, random_train_batches):
     fragment_generators = {}
     nb_examples = {}
     for set_name in ['train', 'test']:
         set_dirname = os.path.join(dirname, set_name)
         full_sequences = load_set(desired_sample_rate, set_dirname, use_ulaw)
-        fragment_generators[set_name] = batch_generator(full_sequences, fragment_length, batch_size, fragment_stride,
-                                                        nb_output_bins, randomize_batch_order, _rnd)
+        fragment_generators[set_name] = select_generator(set_name, random_train_batches, full_sequences,
+                                                         fragment_length,
+                                                         batch_size, fragment_stride, nb_output_bins,
+                                                         randomize_batch_order, _rnd)
         nb_examples[set_name] = int(sum(
             [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
              full_sequences]) / batch_size) * batch_size
@@ -58,7 +85,7 @@ def generators(dirname, desired_sample_rate, fragment_length, batch_size, fragme
 
 
 def generators_vctk(dirname, desired_sample_rate, fragment_length, batch_size, fragment_stride, nb_output_bins,
-                    learn_all_outputs, use_ulaw, test_factor, randomize_batch_order, _rnd):
+                    learn_all_outputs, use_ulaw, test_factor, randomize_batch_order, _rnd, random_train_batches):
     fragment_generators = {}
     nb_examples = {}
     speaker_dirs = os.listdir(dirname)
@@ -71,8 +98,10 @@ def generators_vctk(dirname, desired_sample_rate, fragment_length, batch_size, f
         test_full_sequences.extend(full_sequences[nb_examples_train:])
 
     for set_name, set_sequences in zip(['train', 'test'], [train_full_sequences, test_full_sequences]):
-        fragment_generators[set_name] = batch_generator(set_sequences, fragment_length, batch_size, fragment_stride,
-                                                        nb_output_bins, randomize_batch_order, _rnd)
+        fragment_generators[set_name] = select_generator(set_name, random_train_batches, full_sequences,
+                                                         fragment_length,
+                                                         batch_size, fragment_stride, nb_output_bins,
+                                                         randomize_batch_order, _rnd)
         nb_examples[set_name] = int(sum(
             [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
              full_sequences]) / batch_size) * batch_size

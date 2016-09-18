@@ -70,22 +70,31 @@ Train with different configurations:
 ```$ KERAS_BACKEND=theano python wavenet.py with 'option=value' 'option2=value'```
 Available options:
 ```
- batch_size = 64
+  batch_size = 16
   data_dir = 'data'
+  data_dir_structure = 'flat'
   debug = False
   desired_sample_rate = 4410
   dilation_depth = 9
   early_stopping_patience = 20
-  fragment_length = 1024
-  fragment_stride = 2045
+  fragment_length = 1152
+  fragment_stride = 128
   keras_verbose = 1
   learn_all_outputs = True
   nb_epoch = 1000
   nb_filters = 256
   nb_output_bins = 256
   nb_stacks = 1
+  predict_initial_input = ''
+  predict_seconds = 1
+  predict_use_softmax_as_input = False
+  random_train_batches = False
+  randomize_batch_order = True
   run_dir = None
-  seed = 3004083
+  sample_argmax = False
+  sample_temperature = 0.001
+  seed = 173213366
+  test_factor = 0.1
   train_only_in_receptive_field = True
   use_bias = False
   use_skip_connections = True
@@ -108,8 +117,9 @@ Available options:
 ## Todo:
 - [ ] Local conditioning
 - [ ] Global conditioning
-- [ ] Training on CSTR VCTK Corpus
+- [x] Training on CSTR VCTK Corpus
 - [x] CLI option to pick a wave file for the sample generation initial input. Done: see `predict_initial_input`.
+- [x] Fully randomized training batches
 
 ## Uncertainties from paper:
 - It's unclear if the model is trained to predict t+1 samples for every input sample, or only for the outputs for which which $t-receptive_field$ was in the input. Right now the code does the latter.
