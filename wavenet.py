@@ -8,6 +8,7 @@ import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 import theano
+from keras.regularizers import l2
 from sacred import Experiment
 
 from sacred.commands import print_config
@@ -42,6 +43,8 @@ def config():
     nb_stacks = 1
     use_bias = False
     use_ulaw = True
+    res_l2 = 0
+    final_l2 = 0
     fragment_length = 128 + compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0]
     fragment_stride = 128
     use_skip_connections = True
@@ -106,9 +109,12 @@ def vctkmod(desired_sample_rate):
     dilation_depth = 7
     nb_stacks = 4
     fragment_length = 1 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
-    fragment_stride = int(desired_sample_rate)
+    fragment_stride = int(desired_sample_rate/10)
     random_train_batches = True
 
+@ex.named_config
+def length32(desired_sample_rate, dilation_depth, nb_stacks):
+    fragment_length = 32 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
 
 @ex.named_config
 def adam():
@@ -205,37 +211,43 @@ def make_targets_soft(func):
 
 @ex.capture()
 def build_model(fragment_length, nb_filters, nb_output_bins, dilation_depth, nb_stacks, use_skip_connections,
-                learn_all_outputs, _log, desired_sample_rate, use_bias):
+                learn_all_outputs, _log, desired_sample_rate, use_bias, res_l2, final_l2):
     def residual_block(x):
         original_x = x
         # TODO: initalization, regularization?
         # Note: The AtrousConvolution1D with the 'causal' flag is implemented in github.com/basveeling/keras#@wavenet.
         tanh_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
                                               bias=use_bias,
-                                              name='dilated_conv_%d_tanh_s%d' % (2 ** i, s), activation='tanh')(x)
+                                              name='dilated_conv_%d_tanh_s%d' % (2 ** i, s), activation='tanh',
+                                              W_regularizer=l2(res_l2))(x)
         sigm_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
                                               bias=use_bias,
-                                              name='dilated_conv_%d_sigm_s%d' % (2 ** i, s), activation='sigmoid')(x)
+                                              name='dilated_conv_%d_sigm_s%d' % (2 ** i, s), activation='sigmoid',
+                                              W_regularizer=l2(res_l2))(x)
         x = layers.Merge(mode='mul', name='gated_activation_%d_s%d' % (i, s))([tanh_out, sigm_out])
-        x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias)(x)
-        skip_out = x
-        x = layers.Merge(mode='sum')([original_x, x])
-        return x, skip_out
+
+        res_x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias,
+                                              W_regularizer=l2(res_l2))(x)
+        skip_x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias,
+                                              W_regularizer=l2(res_l2))(x)
+        res_x = layers.Merge(mode='sum')([original_x, res_x])
+        return res_x, skip_x
 
     input = Input(shape=(fragment_length, nb_output_bins), name='input_part')
     out = input
     skip_connections = []
     out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=1, border_mode='valid', causal=True,
                                      name='initial_causal_conv')(out)
-    for s in xrange(nb_stacks):
-        for i in xrange(0, dilation_depth + 1):
+    for s in range(nb_stacks):
+        for i in range(0, dilation_depth + 1):
             out, skip_out = residual_block(out)
             skip_connections.append(skip_out)
 
     if use_skip_connections:
         out = layers.Merge(mode='sum')(skip_connections)
     out = layers.Activation('relu')(out)
-    out = layers.Convolution1D(nb_output_bins, 1, border_mode='same')(out)
+    out = layers.Convolution1D(nb_output_bins, 1, border_mode='same',
+                                              W_regularizer=l2(final_l2))(out)
     out = layers.Activation('relu')(out)
     out = layers.Convolution1D(nb_output_bins, 1, border_mode='same')(out)
 
@@ -314,7 +326,14 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
         outputs = list(data_generators['test'].next()[0][-1])
 
     # write_samples(sample_stream, outputs)
+    warned_repetition = False
     for i in tqdm(xrange(int(desired_sample_rate * predict_seconds))):
+        if not warned_repetition:
+            if np.argmax(outputs[-1]) == np.argmax(outputs[-2]) and np.argmax(outputs[-2]) == np.argmax(outputs[-3]):
+                warned_repetition = True
+                _log.warning('Last three predicted outputs where %d' % np.argmax(outputs[-1]))
+            else:
+                warned_repetition = False
         prediction_seed = np.expand_dims(np.array(outputs[i:i + fragment_length]), 0)
         output = model.predict(prediction_seed)
         output_dist = output[0][-1]
@@ -415,7 +434,7 @@ def make_sample_stream(desired_sample_rate, sample_filename):
 
 
 def softmax(x, temp, mod=np):
-    x = x / temp
+    x = mod.log(x) / temp
     e_x = mod.exp(x - mod.max(x, axis=-1))
     return e_x / mod.sum(e_x, axis=-1)
 
