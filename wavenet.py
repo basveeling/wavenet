@@ -216,9 +216,9 @@ def build_model(fragment_length, nb_filters, nb_output_bins, dilation_depth, nb_
         sigm_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
                                               bias=use_bias,
                                               name='dilated_conv_%d_sigm_s%d' % (2 ** i, s), activation='sigmoid')(x)
-        x = layers.Merge(mode='mul', name='gated_activation_%d_s%d' % (i, s))([tanh_out, sigm_out])
-        x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias)(x)
-        skip_out = x
+        x_gated = layers.Merge(mode='mul', name='gated_activation_%d_s%d' % (i, s))([tanh_out, sigm_out])
+        x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias)(x_gated)
+        skip_out = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias)(x_gated)
         x = layers.Merge(mode='sum')([original_x, x])
         return x, skip_out
 
