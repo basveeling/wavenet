@@ -6,7 +6,7 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 
 Generate your own samples:
 
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```
 
 ## Installation:
 Activate a new virtualenv (recommended):
@@ -36,19 +36,19 @@ Once the first model checkpoint is created, you can start sampling.
 A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160914_113209/config.json predict_seconds=1 sample_temperature=0.001```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
 ### Sampling options:
 - `predict_seconds`: float. Number of seconds to sample.
 - `sample_argmax`: `True` or `False`. Always take the argmax
-- `sample_temperature`: `None` or float. Controls the sampling temperature. 0.01 seems to be a good value.
+- `sample_temperature`: `None` or float. Controls the sampling temperature. 1.0 for the original distribution, < 1.0 for less exploitation, > 1.0 for more exploration.
 - `seed`: int: Controls the seed for the sampling procedure.
 - `predict_initial_input`: string: Path to a wav file, for which the first `fragment_length` samples are used as initial input.
 
 e.g.:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1 sampling_temperature=0.1```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1```
 
 ## Training:
 ```$ KERAS_BACKEND=theano python wavenet.py```
@@ -92,7 +92,7 @@ Available options:
   randomize_batch_order = True
   run_dir = None
   sample_argmax = False
-  sample_temperature = 0.001
+  sample_temperature = 1
   seed = 173213366
   test_factor = 0.1
   train_only_in_receptive_field = True

@@ -140,7 +140,7 @@ def adam2():
 def predict_config():
     predict_seconds = 1
     sample_argmax = False
-    sample_temperature = 0.001  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative chocies.
+    sample_temperature = 1.0  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative samples.
     predict_use_softmax_as_input = False  # Uses the softmax rather than the argmax as in input for the next step.
     predict_initial_input = ''
 
