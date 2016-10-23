@@ -111,7 +111,7 @@ Available options:
 ## Using your own training data:
 - Create a new data directory with a train and test folder in it. All wave files in these folders will be used as data.
     - Caveat: Make sure your wav files are supported by scipy.io.wavefile.read(): e.g. don't use 24bit wav and remove meta info.
-- Run with: `$ python wavenet.py 'data_dir=your_data_dir_name'`
+- Run with: `$ python wavenet.py with 'data_dir=your_data_dir_name'`
 - Test preprocessing results with: `$ python wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
 
 ## Todo:
