@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function
 import datetime
 import json
 import os
@@ -177,7 +178,7 @@ def make_soft(y_true, fragment_length, nb_output_bins, train_with_soft_target_st
 
     # Make a gaussian kernel.
     kernel_v = scipy.signal.gaussian(9, std=train_with_soft_target_stdev)
-    print kernel_v
+    print(kernel_v)
     kernel_v = np.reshape(kernel_v, [1, 1, -1, 1])
     kernel = K.variable(kernel_v)
 
