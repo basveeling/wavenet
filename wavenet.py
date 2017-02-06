@@ -1,22 +1,16 @@
 from __future__ import absolute_import, division, print_function
+
 import datetime
 import json
 import os
 import re
 import wave
 
+import keras.backend as K
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
 import theano
-from keras.regularizers import l2
-from sacred import Experiment
-
-from sacred.commands import print_config
-from tqdm import tqdm
-import keras.backend as K
-
-import dataset
 from keras import layers
 from keras import metrics
 from keras import objectives
@@ -24,6 +18,13 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, C
 from keras.engine import Input
 from keras.engine import Model
 from keras.optimizers import Adam, SGD
+from keras.regularizers import l2
+from sacred import Experiment
+from sacred.commands import print_config
+from tqdm import tqdm
+
+import dataset
+from wavenet_utils import CausalAtrousConvolution1D, categorical_mean_squared_error
 
 ex = Experiment('wavenet')
 
@@ -82,7 +83,8 @@ def book():
 
 
 @ex.named_config
-def small(desired_sample_rate):
+def small():
+    desired_sample_rate = 4410
     nb_filters = 16
     dilation_depth = 8
     nb_stacks = 1
@@ -104,18 +106,21 @@ def vctkdata():
     data_dir_structure = 'vctk'
     test_factor = 0.01
 
+
 @ex.named_config
 def vctkmod(desired_sample_rate):
     nb_filters = 32
     dilation_depth = 7
     nb_stacks = 4
     fragment_length = 1 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
-    fragment_stride = int(desired_sample_rate/10)
+    fragment_stride = int(desired_sample_rate / 10)
     random_train_batches = True
+
 
 @ex.named_config
 def length32(desired_sample_rate, dilation_depth, nb_stacks):
     fragment_length = 32 + (compute_receptive_field_(desired_sample_rate, dilation_depth, nb_stacks)[0])
+
 
 @ex.named_config
 def adam():
@@ -143,7 +148,7 @@ def predict_config():
     sample_argmax = False
     sample_temperature = 1.0  # Temperature for sampling. > 1.0 for more exploring, < 1.0 for conservative samples.
     predict_use_softmax_as_input = False  # Uses the softmax rather than the argmax as in input for the next step.
-    predict_initial_input = ''
+    predict_initial_input = None
 
 
 @ex.named_config
@@ -197,6 +202,7 @@ def make_soft(y_true, fragment_length, nb_output_bins, train_with_soft_target_st
         y_true = print_t(y_true, 'y_true after')
     return y_true
 
+
 def make_targets_soft(func):
     """Turns one-hot into gaussian distributed."""
 
@@ -217,28 +223,28 @@ def build_model(fragment_length, nb_filters, nb_output_bins, dilation_depth, nb_
         original_x = x
         # TODO: initalization, regularization?
         # Note: The AtrousConvolution1D with the 'causal' flag is implemented in github.com/basveeling/keras#@wavenet.
-        tanh_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
-                                              bias=use_bias,
-                                              name='dilated_conv_%d_tanh_s%d' % (2 ** i, s), activation='tanh',
-                                              W_regularizer=l2(res_l2))(x)
-        sigm_out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
-                                              bias=use_bias,
-                                              name='dilated_conv_%d_sigm_s%d' % (2 ** i, s), activation='sigmoid',
-                                              W_regularizer=l2(res_l2))(x)
+        tanh_out = CausalAtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
+                                             bias=use_bias,
+                                             name='dilated_conv_%d_tanh_s%d' % (2 ** i, s), activation='tanh',
+                                             W_regularizer=l2(res_l2))(x)
+        sigm_out = CausalAtrousConvolution1D(nb_filters, 2, atrous_rate=2 ** i, border_mode='valid', causal=True,
+                                             bias=use_bias,
+                                             name='dilated_conv_%d_sigm_s%d' % (2 ** i, s), activation='sigmoid',
+                                             W_regularizer=l2(res_l2))(x)
         x = layers.Merge(mode='mul', name='gated_activation_%d_s%d' % (i, s))([tanh_out, sigm_out])
 
         res_x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias,
-                                              W_regularizer=l2(res_l2))(x)
+                                     W_regularizer=l2(res_l2))(x)
         skip_x = layers.Convolution1D(nb_filters, 1, border_mode='same', bias=use_bias,
-                                              W_regularizer=l2(res_l2))(x)
+                                      W_regularizer=l2(res_l2))(x)
         res_x = layers.Merge(mode='sum')([original_x, res_x])
         return res_x, skip_x
 
     input = Input(shape=(fragment_length, nb_output_bins), name='input_part')
     out = input
     skip_connections = []
-    out = layers.AtrousConvolution1D(nb_filters, 2, atrous_rate=1, border_mode='valid', causal=True,
-                                     name='initial_causal_conv')(out)
+    out = CausalAtrousConvolution1D(nb_filters, 2, atrous_rate=1, border_mode='valid', causal=True,
+                                    name='initial_causal_conv')(out)
     for s in range(nb_stacks):
         for i in range(0, dilation_depth + 1):
             out, skip_out = residual_block(out)
@@ -248,7 +254,7 @@ def build_model(fragment_length, nb_filters, nb_output_bins, dilation_depth, nb_
         out = layers.Merge(mode='sum')(skip_connections)
     out = layers.Activation('relu')(out)
     out = layers.Convolution1D(nb_output_bins, 1, border_mode='same',
-                                              W_regularizer=l2(final_l2))(out)
+                               W_regularizer=l2(final_l2))(out)
     out = layers.Activation('relu')(out)
     out = layers.Convolution1D(nb_output_bins, 1, border_mode='same')(out)
 
@@ -293,7 +299,6 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
             fragment_stride, nb_output_bins, learn_all_outputs, run_dir, predict_use_softmax_as_input, use_ulaw,
             predict_initial_input,
             **kwargs):
-
     fragment_length = compute_receptive_field()[0]
     _config['fragment_length'] = fragment_length
 
@@ -315,8 +320,11 @@ def predict(desired_sample_rate, fragment_length, _log, seed, _seed, _config, pr
 
     model = build_model()
     model.load_weights(os.path.join(checkpoint_dir, last_checkpoint))
+    model.summary()
 
-    if predict_initial_input != '':
+    if predict_initial_input is None:
+        outputs = list(dataset.one_hot(np.zeros(fragment_length) + nb_output_bins / 2))
+    elif predict_initial_input != '':
         _log.info('Taking first %d (%.2fs) from \'%s\' as initial input.' % (
             fragment_length, fragment_length / desired_sample_rate, predict_initial_input))
         wav = dataset.process_wav(desired_sample_rate, predict_initial_input, use_ulaw)
@@ -380,7 +388,8 @@ def write_samples(sample_file, out_val, use_ulaw):
 
 @ex.capture
 def get_generators(batch_size, data_dir, desired_sample_rate, fragment_length, fragment_stride, learn_all_outputs,
-                   nb_output_bins, use_ulaw, test_factor, data_dir_structure, randomize_batch_order, _rnd, random_train_batches):
+                   nb_output_bins, use_ulaw, test_factor, data_dir_structure, randomize_batch_order, _rnd,
+                   random_train_batches):
     if data_dir_structure == 'flat':
         return dataset.generators(data_dir, desired_sample_rate, fragment_length, batch_size,
                                   fragment_stride, nb_output_bins, learn_all_outputs, use_ulaw, randomize_batch_order,
@@ -398,14 +407,14 @@ def get_generators(batch_size, data_dir, desired_sample_rate, fragment_length, f
 def test_make_soft(_log, train_with_soft_target_stdev, _config):
     if train_with_soft_target_stdev is None:
         _config['train_with_soft_target_stdev'] = 1
-    y_true = K.reshape(K.eye(512)[:129,:256], (2, 129, 256))
+    y_true = K.reshape(K.eye(512)[:129, :256], (2, 129, 256))
     y_soft = make_soft(y_true)
     f = K.function([], y_soft)
     _log.info('Output of soft:')
     f1 = f([])
 
-    _log.info(f1[0,0])
-    _log.info(f1[-1,-1])
+    _log.info(f1[0, 0])
+    _log.info(f1[-1, -1])
 
 
 @ex.command
@@ -452,7 +461,6 @@ def draw_sample(output_dist, sample_temperature, sample_argmax, _rnd):
     return output_dist
 
 
-
 @ex.automain
 def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_rate, fragment_length, batch_size,
          fragment_stride, nb_output_bins, keras_verbose, _log, seed, _config, debug, learn_all_outputs,
@@ -485,7 +493,7 @@ def main(run_dir, data_dir, nb_epoch, early_stopping_patience, desired_sample_ra
     loss = objectives.categorical_crossentropy
     all_metrics = [
         metrics.categorical_accuracy,
-        metrics.categorical_mean_squared_error
+        categorical_mean_squared_error
     ]
     if train_with_soft_target_stdev:
         loss = make_targets_soft(loss)
