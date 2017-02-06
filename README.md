@@ -25,8 +25,6 @@ cd wavenet
 pip install -r requirements.txt
 ```
 
-Note: this installs a modified version of Keras and the git version of Theano. 
-
 Using the tensorflow backend is not recommended at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
 
 ## Dependencies:
