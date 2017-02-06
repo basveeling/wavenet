@@ -4,9 +4,10 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 
 [Listen to a sample 🎶!](https://soundcloud.com/basveeling/wavenet-sample)
 
-Generate your own samples:
+~~Generate your own samples:
 
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```~~
+EDIT: The pretrained model had to be removed from the repository as it wasn't compatible with recent changes.
 
 ## Installation:
 Activate a new virtualenv (recommended):
@@ -33,10 +34,9 @@ Using the tensorflow backend is not recommended at this time, see [this issue](h
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
-A pretrained model is included, so sample away! (Trained on the chopin dataset from http://iwk.mdw.ac.at/goebl/mp3.html)
 
 Run:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```
+```$ KERAS_BACKEND=theano python wavenet.py predict with models/<your_run_folder>/config.json predict_seconds=1```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
