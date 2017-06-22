@@ -10,7 +10,7 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 EDIT: The pretrained model had to be removed from the repository as it wasn't compatible with recent changes.
 
 ## Installation:
-Activate a new virtualenv (recommended):
+Activate a new python2 virtualenv (recommended):
 ```bash
 pip install virtualenv
 mkdir ~/virtualenvs && cd ~/virtualenvs
@@ -28,8 +28,9 @@ pip install -r requirements.txt
 Using the tensorflow backend is not recommended at this time, see [this issue](https://github.com/basveeling/wavenet/issues/7)
 
 ## Dependencies:
-[Sacred](https://github.com/IDSIA/sacred) is used for managing training and sampling. Take a look at the [documentation](http://sacred.readthedocs.io/en/latest/) for more information.
-This implementation does not support python3 as of now.
+- [Sacred](https://github.com/IDSIA/sacred) is used for managing training and sampling. Take a look at the [documentation](http://sacred.readthedocs.io/en/latest/) for more information.
+
+- This implementation does not support python3 as of now.
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
