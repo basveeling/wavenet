@@ -6,7 +6,7 @@ Based on https://deepmind.com/blog/wavenet-generative-model-raw-audio/ and https
 
 ~~Generate your own samples:
 
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```~~
+```$ KERAS_BACKEND=theano python2 wavenet.py predict with models/run_20160920_120916/config.json predict_seconds=1```~~
 EDIT: The pretrained model had to be removed from the repository as it wasn't compatible with recent changes.
 
 ## Installation:
@@ -17,7 +17,7 @@ mkdir ~/virtualenvs && cd ~/virtualenvs
 virtualenv wavenet
 source wavenet/bin/activate
 ```
-Clone and install requirements:
+Clone and install requirements.
 ```bash
 cd ~
 git clone https://github.com/basveeling/wavenet.git
@@ -29,12 +29,13 @@ Using the tensorflow backend is not recommended at this time, see [this issue](h
 
 ## Dependencies:
 [Sacred](https://github.com/IDSIA/sacred) is used for managing training and sampling. Take a look at the [documentation](http://sacred.readthedocs.io/en/latest/) for more information.
+This implementation does not support python3 as of now.
 
 ## Sampling:
 Once the first model checkpoint is created, you can start sampling.
 
 Run:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/<your_run_folder>/config.json predict_seconds=1```
+```$ KERAS_BACKEND=theano python2 wavenet.py predict with models/<your_run_folder>/config.json predict_seconds=1```
 
 The latest model checkpoint will be retrieved and used to sample. The sample will be streamed to `[run_folder]/samples`, you can start listening when the first sample is generated.
 
@@ -46,26 +47,26 @@ The latest model checkpoint will be retrieved and used to sample. The sample wil
 - `predict_initial_input`: string: Path to a wav file, for which the first `fragment_length` samples are used as initial input.
 
 e.g.:
-```$ KERAS_BACKEND=theano python wavenet.py predict with models/[run_folder]/config.json predict_seconds=1```
+```$ KERAS_BACKEND=theano python2 wavenet.py predict with models/[run_folder]/config.json predict_seconds=1```
 
 ## Training:
-```$ KERAS_BACKEND=theano python wavenet.py```
+```$ KERAS_BACKEND=theano python2 wavenet.py```
 
 Or for a smaller network (less channels per layer).
-```$ KERAS_BACKEND=theano python wavenet.py with small```
+```$ KERAS_BACKEND=theano python2 wavenet.py with small```
 
 ### VCTK:
 In order to use the VCTK dataset, first download the dataset by running `vctk/download_vctk.sh`.
 
 Training is done with:
-```$ KERAS_BACKEND=theano python wavenet.py with vctkdata```
+```$ KERAS_BACKEND=theano python2 wavenet.py with vctkdata```
 
 For smaller network:
-```$ KERAS_BACKEND=theano python wavenet.py with vctkdata small```
+```$ KERAS_BACKEND=theano python2 wavenet.py with vctkdata small```
 
 ### Options:
 Train with different configurations:
-```$ KERAS_BACKEND=theano python wavenet.py with 'option=value' 'option2=value'```
+```$ KERAS_BACKEND=theano python2 wavenet.py with 'option=value' 'option2=value'```
 Available options:
 ```
   batch_size = 16
@@ -109,8 +110,8 @@ Available options:
 ## Using your own training data:
 - Create a new data directory with a train and test folder in it. All wave files in these folders will be used as data.
     - Caveat: Make sure your wav files are supported by scipy.io.wavefile.read(): e.g. don't use 24bit wav and remove meta info.
-- Run with: `$ python wavenet.py with 'data_dir=your_data_dir_name'`
-- Test preprocessing results with: `$ python wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
+- Run with: `$ python2 wavenet.py with 'data_dir=your_data_dir_name'`
+- Test preprocessing results with: `$ python2 wavenet.py test_preprocess with 'data_dir=your_data_dir_name'`
 
 ## Todo:
 - [ ] Local conditioning
