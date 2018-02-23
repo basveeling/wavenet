@@ -9,6 +9,6 @@ then
     if [[ "$OSTYPE" == "darwin"* ]]; then
         open VCTK-Corpus.tar.gz
     else
-        tar -xvfz VCTK-Corpus.tar.gz
+        tar -xvf VCTK-Corpus.tar.gz
     fi
 fi
