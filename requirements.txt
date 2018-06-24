@@ -1,7 +1,9 @@
-theano~=0.9b1
-keras~=1.2.1
 picklable_itertools~=0.1.1
 sacred~=0.6.10
-h5py~=2.6.0
 tqdm~=4.8.4
 q~=2.6
+keras==2.1.2
+tensorflow-gpu==1.8.0
+h5py==2.7.1
+scipy==1.0.0
+matplotlib==2.1.1
