@@ -23,7 +23,7 @@ def fragment_indices(full_sequences, fragment_length, batch_size, fragment_strid
     for seq_i, sequence in enumerate(full_sequences):
         # range_values = np.linspace(np.iinfo(sequence.dtype).min, np.iinfo(sequence.dtype).max, nb_output_bins)
         # digitized = np.digitize(sequence, range_values).astype('uint8')
-        for i in xrange(0, sequence.shape[0] - fragment_length, fragment_stride):
+        for i in range(0, sequence.shape[0] - fragment_length, fragment_stride):
             yield seq_i, i
 
 
@@ -78,7 +78,7 @@ def generators(dirname, desired_sample_rate, fragment_length, batch_size, fragme
                                                          batch_size, fragment_stride, nb_output_bins,
                                                          randomize_batch_order, _rnd)
         nb_examples[set_name] = int(sum(
-            [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
+            [len(range(0, x.shape[0] - fragment_length, fragment_stride)) for x in
              full_sequences]) / batch_size) * batch_size
 
     return fragment_generators, nb_examples
@@ -103,7 +103,7 @@ def generators_vctk(dirname, desired_sample_rate, fragment_length, batch_size, f
                                                          batch_size, fragment_stride, nb_output_bins,
                                                          randomize_batch_order, _rnd)
         nb_examples[set_name] = int(sum(
-            [len(xrange(0, x.shape[0] - fragment_length, fragment_stride)) for x in
+            [len(range(0, x.shape[0] - fragment_length, fragment_stride)) for x in
              full_sequences]) / batch_size) * batch_size
 
     return fragment_generators, nb_examples
