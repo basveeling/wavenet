@@ -3,7 +3,7 @@ sacred~=0.6.10
 tqdm~=4.8.4
 q~=2.6
 keras==2.1.2
-tensorflow-gpu==1.8.0
+tensorflow-gpu==1.15.0
 h5py==2.7.1
 scipy==1.0.0
 matplotlib==2.1.1
